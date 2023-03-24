@@ -1,0 +1,24 @@
+{
+  "name": "event-emitter",
+  "version": "1.0.0",
+  "description": "Simple event emitter for Node and the browser.",
+  "type": "module",
+  "main": "./dist/emitter.js",
+  "types": "./dist/emitter.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrabausch/event-emitter.git"
+  },
+  "author": "Johannes Rabausch",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jrabausch/event-emitter/issues"
+  },
+  "homepage": "https://github.com/jrabausch/event-emitter#readme",
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}

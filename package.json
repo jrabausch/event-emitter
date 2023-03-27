@@ -2,11 +2,13 @@
   "name": "@jrabausch/event-emitter",
   "version": "1.0.0",
   "description": "Simple event emitter for Node and the browser.",
-  "type": "module",
   "main": "./dist/emitter.js",
+  "module": "./dist/esm/emitter.js",
   "types": "./dist/emitter.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build:cjs": "tsc --declaration",
+    "build:mjs": "tsc --module es6 --outDir ./dist/esm",
+    "build": "npm run build:cjs & npm run build:mjs"
   },
   "repository": {
     "type": "git",

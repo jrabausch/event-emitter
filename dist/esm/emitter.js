@@ -1,6 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventEmitter = void 0;
 ;
 class EmitterCustomEvent extends Event {
     constructor(event) {
@@ -8,7 +5,7 @@ class EmitterCustomEvent extends Event {
         this.event = event;
     }
 }
-class EventEmitter {
+export class EventEmitter {
     constructor() {
         this.eventTarget = new EventTarget();
         this.eventMap = new Map();
@@ -52,4 +49,3 @@ class EventEmitter {
         return this;
     }
 }
-exports.EventEmitter = EventEmitter;

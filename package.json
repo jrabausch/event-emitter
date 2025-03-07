@@ -9,7 +9,7 @@
     "check": "tsc --noEmit",
     "lint": "eslint",
     "build": "tsup",
-    "test": "jasmine --config=jasmine.json --parallel=2"
+    "test": "jasmine --config=jasmine.json"
   },
   "repository": {
     "type": "git",
@@ -22,10 +22,10 @@
   },
   "homepage": "https://github.com/jrabausch/event-emitter#readme",
   "devDependencies": {
-    "@antfu/eslint-config": "^4.7.0",
-    "@types/jasmine": "^4.6.5",
+    "@antfu/eslint-config": "^4.8.1",
+    "@types/jasmine": "^5.1.7",
     "esbuild-register": "^3.6.0",
-    "eslint": "^9.21.0",
+    "eslint": "^9.22.0",
     "jasmine": "^5.6.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.2"

@@ -4,14 +4,14 @@ type EmitterEvent = {
 };
 type EventClass<T extends EmitterEvent> = new (...args: any[]) => T;
 type EventCallback<T extends EmitterEvent> = (event: T) => false | void;
+type CallbackArray<T extends EmitterEvent> = Array<[EventCallback<T>, boolean] | undefined>;
 declare class EventEmitter {
-    protected readonly eventTarget: EventTarget;
-    protected readonly eventMap: Map<EventClass<EmitterEvent>, WeakMap<EventCallback<never>, EventListener>>;
+    protected readonly eventMap: WeakMap<EventClass<EmitterEvent>, CallbackArray<never>>;
     once<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this;
     on<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this;
-    protected set<T extends EmitterEvent>(event: EventClass<T>, original: EventCallback<T>, callback: EventCallback<T>): this;
-    off<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): boolean;
+    off<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this;
     emit<T extends EmitterEvent>(event: T): this;
+    protected set<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>, once?: boolean): this;
 }
 
 export { type EmitterEvent, type EventCallback, type EventClass, EventEmitter };

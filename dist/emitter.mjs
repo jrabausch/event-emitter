@@ -1,54 +1,54 @@
 // src/emitter.ts
-var EmitterCustomEvent = class extends Event {
-  constructor(event) {
-    super(event.constructor.name);
-    this.event = event;
-  }
-};
 var EventEmitter = class {
   constructor() {
-    this.eventTarget = new EventTarget();
-    this.eventMap = /* @__PURE__ */ new Map();
+    this.eventMap = /* @__PURE__ */ new WeakMap();
   }
   once(event, callback) {
-    const wrapper = (e) => {
-      this.off(event, callback);
-      return callback(e);
-    };
-    return this.set(event, callback, wrapper);
+    return this.set(event, callback, true);
   }
   on(event, callback) {
-    return this.set(event, callback, callback);
-  }
-  set(event, original, callback) {
-    const listener = (e) => {
-      if (callback(e.event) === false) {
-        e.stopImmediatePropagation();
-      }
-    };
-    let map = this.eventMap.get(event);
-    if (map === void 0) {
-      map = /* @__PURE__ */ new WeakMap();
-      this.eventMap.set(event, map);
-    }
-    map.set(original, listener);
-    this.eventTarget.addEventListener(event.name, listener);
-    return this;
+    return this.set(event, callback);
   }
   off(event, callback) {
-    const map = this.eventMap.get(event);
-    if (map !== void 0) {
-      const listener = map.get(callback);
-      if (listener !== void 0) {
-        this.eventTarget.removeEventListener(event.name, listener);
-        return map.delete(callback);
+    const events = this.eventMap.get(event);
+    if (events) {
+      const filtered = events.filter((ev) => ev && ev[0] !== callback);
+      if (filtered.length > 0) {
+        this.eventMap.set(event, filtered);
+      } else {
+        this.eventMap.delete(event);
       }
     }
-    return false;
+    return this;
   }
   emit(event) {
-    const customEvent = new EmitterCustomEvent(event);
-    this.eventTarget.dispatchEvent(customEvent);
+    const klass = event.constructor;
+    const events = this.eventMap.get(klass);
+    if (events) {
+      const length = events.length;
+      for (let i = 0; i < length; i++) {
+        const entry = events[i];
+        if (!entry) {
+          continue;
+        }
+        if (entry[1]) {
+          events[i] = void 0;
+        }
+        if (entry[0](event) === false) {
+          break;
+        }
+      }
+    }
+    return this;
+  }
+  set(event, callback, once = false) {
+    const events = this.eventMap.get(event);
+    if (events) {
+      const filtered = events.filter((ev) => ev && ev[0] !== callback);
+      this.eventMap.set(event, [...filtered, [callback, once]]);
+    } else {
+      this.eventMap.set(event, [[callback, once]]);
+    }
     return this;
   }
 };

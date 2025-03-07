@@ -2,8 +2,12 @@ import type { EmitterEvent, EventCallback } from '../src/emitter';
 import { EventEmitter } from '../src/emitter';
 
 class TestEvent {
-  public name: string = 'event';
-  public payload: number = 1;
+  public readonly name: string = 'event';
+  public readonly payload: number = 1;
+}
+
+class ExtendedEvent extends TestEvent {
+  public readonly type: string = 'extended';
 }
 
 describe('eventEmitter', () => {
@@ -122,5 +126,16 @@ describe('eventEmitter', () => {
 
     expect(count).toBe(3);
     expect(count2).toBe(1);
+  });
+
+  it('should work with inherited instances', () => {
+    const event = new ExtendedEvent();
+    let count = 0;
+    eventEmitter.on(ExtendedEvent, (ev) => {
+      expect(ev.type).toBe('extended');
+      count++;
+    });
+    eventEmitter.emit(event);
+    expect(count).toBe(1);
   });
 });

@@ -5,71 +5,63 @@ export type EmitterEvent = {
 
 export type EventClass<T extends EmitterEvent> = new (...args: any[]) => T;
 export type EventCallback<T extends EmitterEvent> = (event: T) => false | void;
-
-class EmitterCustomEvent extends Event {
-  event: EmitterEvent;
-  constructor(event: EmitterEvent) {
-    super(event.constructor.name);
-    this.event = event;
-  }
-}
+type CallbackArray<T extends EmitterEvent> = Array<[EventCallback<T>, boolean] | undefined>;
 
 export class EventEmitter {
-  protected readonly eventTarget: EventTarget = new EventTarget();
-  protected readonly eventMap: Map<EventClass<EmitterEvent>, WeakMap<EventCallback<never>, EventListener>> = new Map();
+  protected readonly eventMap: WeakMap<EventClass<EmitterEvent>, CallbackArray<never>> = new WeakMap();
 
   once<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this {
-    const wrapper = (e: T) => {
-      this.off(event, callback);
-      return callback(e);
-    };
-    return this.set(event, callback, wrapper);
+    return this.set(event, callback, true);
   }
 
   on<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this {
-    return this.set(event, callback, callback);
+    return this.set(event, callback);
   }
 
-  protected set<T extends EmitterEvent>(event: EventClass<T>, original: EventCallback<T>, callback: EventCallback<T>): this {
-    const listener = (e: Event) => {
-      if (callback((e as EmitterCustomEvent).event as T) === false) {
-        e.stopImmediatePropagation();
+  off<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this {
+    const events = this.eventMap.get(event);
+    if (events) {
+      const filtered = events.filter(ev => ev && ev[0] !== callback);
+      if (filtered.length > 0) {
+        this.eventMap.set(event, filtered);
       }
-    };
-
-    let map = this.eventMap.get(event);
-
-    if (map === undefined) {
-      map = new WeakMap();
-      this.eventMap.set(event, map);
+      else {
+        this.eventMap.delete(event);
+      }
     }
-
-    map.set(original, listener);
-
-    this.eventTarget.addEventListener(event.name, listener);
-
     return this;
   }
 
-  off<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): boolean {
-    const map = this.eventMap.get(event);
-
-    if (map !== undefined) {
-      const listener = map.get(callback);
-
-      if (listener !== undefined) {
-        this.eventTarget.removeEventListener(event.name, listener);
-        return map.delete(callback);
+  emit<T extends EmitterEvent>(event: T): this {
+    const klass = event.constructor as EventClass<T>;
+    const events = this.eventMap.get(klass);
+    if (events) {
+      const length = events.length;
+      for (let i = 0; i < length; i++) {
+        const entry = events[i];
+        if (!entry) {
+          continue;
+        }
+        if (entry[1]) {
+          events[i] = undefined;
+        }
+        if (entry[0](event as never) === false) {
+          break;
+        }
       }
     }
-
-    return false;
+    return this;
   }
 
-  emit<T extends EmitterEvent>(event: T): this {
-    const customEvent = new EmitterCustomEvent(event);
-    this.eventTarget.dispatchEvent(customEvent);
-
+  protected set<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>, once: boolean = false): this {
+    const events = this.eventMap.get(event);
+    if (events) {
+      const filtered = events.filter(ev => ev && ev[0] !== callback);
+      this.eventMap.set(event, [...filtered, [callback, once]]);
+    }
+    else {
+      this.eventMap.set(event, [[callback, once]]);
+    }
     return this;
   }
 }

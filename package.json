@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Simple event emitter for Node and the browser.",
   "main": "./dist/emitter.js",
-  "module": "./dist/esm/emitter.js",
+  "module": "./dist/emitter.mjs",
   "types": "./dist/emitter.d.ts",
   "scripts": {
-    "build:cjs": "tsc --declaration",
-    "build:mjs": "tsc --module es6 --outDir ./dist/esm",
-    "build": "npm run build:cjs & npm run build:mjs",
+    "check": "tsc --noEmit",
+    "lint": "eslint",
+    "build": "tsup",
     "test": "jasmine --config=jasmine.json --parallel=2"
   },
   "repository": {
@@ -22,9 +22,12 @@
   },
   "homepage": "https://github.com/jrabausch/event-emitter#readme",
   "devDependencies": {
-    "@types/jasmine": "^4.3.5",
-    "jasmine": "^5.1.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "@antfu/eslint-config": "^4.7.0",
+    "@types/jasmine": "^4.6.5",
+    "esbuild-register": "^3.6.0",
+    "eslint": "^9.21.0",
+    "jasmine": "^5.6.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
   }
 }

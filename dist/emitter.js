@@ -36,12 +36,15 @@ var EventEmitter = class {
   }
   once(event, callback) {
     const wrapper = (e) => {
-      this.off(event, wrapper);
+      this.off(event, callback);
       return callback(e);
     };
-    return this.on(event, wrapper);
+    return this.set(event, callback, wrapper);
   }
   on(event, callback) {
+    return this.set(event, callback, callback);
+  }
+  set(event, original, callback) {
     const listener = (e) => {
       if (callback(e.event) === false) {
         e.stopImmediatePropagation();
@@ -52,7 +55,7 @@ var EventEmitter = class {
       map = /* @__PURE__ */ new WeakMap();
       this.eventMap.set(event, map);
     }
-    map.set(callback, listener);
+    map.set(original, listener);
     this.eventTarget.addEventListener(event.name, listener);
     return this;
   }

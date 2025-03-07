@@ -15,19 +15,22 @@ class EmitterCustomEvent extends Event {
 }
 
 export class EventEmitter {
-  protected eventTarget: EventTarget = new EventTarget();
-  protected eventMap: Map<EventClass<any>, WeakMap<EventCallback<any>, EventListener>> = new Map();
+  protected readonly eventTarget: EventTarget = new EventTarget();
+  protected readonly eventMap: Map<EventClass<EmitterEvent>, WeakMap<EventCallback<never>, EventListener>> = new Map();
 
   once<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this {
     const wrapper = (e: T) => {
-      this.off(event, wrapper);
+      this.off(event, callback);
       return callback(e);
     };
-
-    return this.on(event, wrapper);
+    return this.set(event, callback, wrapper);
   }
 
   on<T extends EmitterEvent>(event: EventClass<T>, callback: EventCallback<T>): this {
+    return this.set(event, callback, callback);
+  }
+
+  protected set<T extends EmitterEvent>(event: EventClass<T>, original: EventCallback<T>, callback: EventCallback<T>): this {
     const listener = (e: Event) => {
       if (callback((e as EmitterCustomEvent).event as T) === false) {
         e.stopImmediatePropagation();
@@ -41,7 +44,7 @@ export class EventEmitter {
       this.eventMap.set(event, map);
     }
 
-    map.set(callback, listener);
+    map.set(original, listener);
 
     this.eventTarget.addEventListener(event.name, listener);
 

@@ -87,6 +87,20 @@ describe('eventEmitter', () => {
     expect(count).toBe(2);
   });
 
+  it('should remove once listener', () => {
+    let count = 0;
+    const listener = () => {
+      count++;
+    };
+
+    eventEmitter.once(TestEvent, listener);
+
+    eventEmitter.off(TestEvent, listener);
+    eventEmitter.emit(emitterEvent);
+
+    expect(count).toBe(0);
+  });
+
   it('should stop callback execution', () => {
     let count = 0;
     let count2 = 0;

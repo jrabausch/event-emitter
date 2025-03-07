@@ -1,12 +1,12 @@
-import { EmitterEvent, EventCallback, EventEmitter } from '../src/emitter';
+import type { EmitterEvent, EventCallback } from '../src/emitter';
+import { EventEmitter } from '../src/emitter';
 
 class TestEvent {
   public name: string = 'event';
   public payload: number = 1;
 }
 
-describe('EventEmitter', () => {
-
+describe('eventEmitter', () => {
   let eventEmitter: EventEmitter;
   let emitterEvent: EmitterEvent;
 
@@ -16,16 +16,14 @@ describe('EventEmitter', () => {
   });
 
   it('should return self on emit', () => {
-
     const emitter = eventEmitter.emit(emitterEvent);
     expect(emitter).toBe(eventEmitter);
   });
 
   it('should emit an event', () => {
-
     let count = 0;
 
-    eventEmitter.on(TestEvent, event => {
+    eventEmitter.on(TestEvent, (event) => {
       expect(event).toBeInstanceOf(TestEvent);
       expect(event.name).toBe('event');
       expect(event.payload).toBe(1);
@@ -37,13 +35,14 @@ describe('EventEmitter', () => {
   });
 
   it('should listen many times', () => {
-
     let count = 0;
-    eventEmitter.on(TestEvent, event => { count++ });
+    eventEmitter.on(TestEvent, () => {
+      count++;
+    });
 
     const rand = (Math.random() * 10 + 2) | 0;
 
-    Array(rand).fill(1).forEach(() => {
+    Array.from({ length: rand }).fill(1).forEach(() => {
       eventEmitter.emit(emitterEvent);
     });
 
@@ -51,10 +50,11 @@ describe('EventEmitter', () => {
   });
 
   it('should listen once', () => {
-
     let count = 0;
 
-    eventEmitter.once(TestEvent, event => { count++ });
+    eventEmitter.once(TestEvent, () => {
+      count++;
+    });
 
     eventEmitter.emit(emitterEvent);
     eventEmitter.emit(emitterEvent);
@@ -64,9 +64,10 @@ describe('EventEmitter', () => {
   });
 
   it('should remove a listener', () => {
-
     let count = 0;
-    const listener: EventCallback<TestEvent> = (event) => { count++ };
+    const listener: EventCallback<TestEvent> = () => {
+      count++;
+    };
 
     eventEmitter.on(TestEvent, listener);
 
@@ -87,18 +88,17 @@ describe('EventEmitter', () => {
   });
 
   it('should stop callback execution', () => {
-
     let count = 0;
     let count2 = 0;
 
-    eventEmitter.on(TestEvent, event => {
+    eventEmitter.on(TestEvent, () => {
       count++;
       if (count > 1) {
         return false;
       }
     });
 
-    eventEmitter.on(TestEvent, event => {
+    eventEmitter.on(TestEvent, () => {
       count2++;
     });
 

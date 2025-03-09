@@ -1,5 +1,5 @@
-import type { EmitterEvent, EventCallback } from '../src/emitter';
-import { EventEmitter } from '../src/emitter';
+import type { EmitterEvent } from '../src/event-emitter';
+import { EventEmitter } from '../src/event-emitter';
 
 class TestEvent {
   public readonly name: string = 'event';
@@ -13,10 +13,12 @@ class ExtendedEvent extends TestEvent {
 describe('eventEmitter', () => {
   let eventEmitter: EventEmitter;
   let emitterEvent: EmitterEvent;
+  let extendedEvent: ExtendedEvent;
 
   beforeEach(() => {
     eventEmitter = new EventEmitter();
     emitterEvent = new TestEvent();
+    extendedEvent = new ExtendedEvent();
   });
 
   it('should return self on emit', () => {
@@ -69,26 +71,23 @@ describe('eventEmitter', () => {
 
   it('should remove a listener', () => {
     let count = 0;
-    const listener: EventCallback<TestEvent> = () => {
+    const listener = () => {
       count++;
     };
 
-    eventEmitter.on(TestEvent, listener);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    expect(eventEmitter.events().length).toBe(0);
 
-    eventEmitter.emit(emitterEvent);
-
-    expect(count).toBe(1);
-
-    eventEmitter.emit(emitterEvent);
-
-    expect(count).toBe(2);
+    eventEmitter.once(TestEvent, listener);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(1);
+    expect(eventEmitter.events()).toEqual([TestEvent]);
 
     eventEmitter.off(TestEvent, listener);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    expect(eventEmitter.events().length).toBe(0);
 
     eventEmitter.emit(emitterEvent);
-    eventEmitter.emit(emitterEvent);
-
-    expect(count).toBe(2);
+    expect(count).toBe(0);
   });
 
   it('should remove once listener', () => {
@@ -97,45 +96,87 @@ describe('eventEmitter', () => {
       count++;
     };
 
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    expect(eventEmitter.events().length).toBe(0);
+
     eventEmitter.once(TestEvent, listener);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(1);
+    expect(eventEmitter.events()).toEqual([TestEvent]);
 
     eventEmitter.off(TestEvent, listener);
-    eventEmitter.emit(emitterEvent);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    expect(eventEmitter.events().length).toBe(0);
 
+    eventEmitter.emit(emitterEvent);
     expect(count).toBe(0);
   });
 
-  it('should stop callback execution', () => {
-    let count = 0;
-    let count2 = 0;
+  it('should remove all event listeners', () => {
+    const listener1 = () => { };
+    const listener2 = () => { };
 
-    eventEmitter.on(TestEvent, () => {
-      count++;
-      if (count > 1) {
-        return false;
-      }
-    });
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    eventEmitter.on(TestEvent, listener1).on(TestEvent, listener2);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(2);
 
-    eventEmitter.on(TestEvent, () => {
-      count2++;
-    });
-
-    eventEmitter.emit(emitterEvent);
-    eventEmitter.emit(emitterEvent);
-    eventEmitter.emit(emitterEvent);
-
-    expect(count).toBe(3);
-    expect(count2).toBe(1);
+    eventEmitter.off(TestEvent);
+    expect(eventEmitter.listeners(TestEvent).length).toBe(0);
+    expect(eventEmitter.events()).toEqual([]);
   });
 
   it('should work with inherited instances', () => {
-    const event = new ExtendedEvent();
     let count = 0;
     eventEmitter.on(ExtendedEvent, (ev) => {
       expect(ev.type).toBe('extended');
       count++;
     });
-    eventEmitter.emit(event);
+    eventEmitter.emit(extendedEvent);
     expect(count).toBe(1);
+  });
+
+  it('should return all listeners', () => {
+    const listener1 = () => { };
+    const listener2 = () => { };
+
+    expect(eventEmitter.listeners(TestEvent)).toEqual([]);
+    expect(eventEmitter.listeners(ExtendedEvent)).toEqual([]);
+
+    eventEmitter
+      .on(TestEvent, listener1)
+      .on(TestEvent, listener2);
+    eventEmitter.on(ExtendedEvent, listener2);
+
+    const lis1 = eventEmitter.listeners(TestEvent);
+    expect(lis1.length).toBe(2);
+    expect(lis1).toEqual([listener1, listener2]);
+    const lis2 = eventEmitter.listeners(ExtendedEvent);
+    expect(lis2.length).toBe(1);
+    expect(lis2).toEqual([listener2]);
+  });
+
+  it('should return events', () => {
+    const listener = () => { };
+
+    expect(eventEmitter.events()).toEqual([]);
+
+    eventEmitter.on(ExtendedEvent, listener);
+    eventEmitter.on(TestEvent, listener);
+
+    const events = eventEmitter.events();
+    expect(events).toEqual([ExtendedEvent, TestEvent]);
+  });
+
+  it('should clear itself', () => {
+    const listener = () => { };
+
+    expect(eventEmitter.events().length).toBe(0);
+
+    eventEmitter.on(ExtendedEvent, listener);
+    eventEmitter.on(TestEvent, listener);
+
+    expect(eventEmitter.events().length).toBe(2);
+
+    eventEmitter.clear();
+    expect(eventEmitter.events().length).toBe(0);
   });
 });

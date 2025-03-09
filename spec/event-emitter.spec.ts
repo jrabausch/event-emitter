@@ -60,6 +60,7 @@ describe('eventEmitter', () => {
 
     eventEmitter.once(TestEvent, () => {
       count++;
+      eventEmitter.emit(emitterEvent);
     });
 
     eventEmitter.emit(emitterEvent);

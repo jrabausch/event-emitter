@@ -23,9 +23,27 @@ __export(event_emitter_exports, {
   EventEmitter: () => EventEmitter
 });
 module.exports = __toCommonJS(event_emitter_exports);
+var EventDispatcher = class {
+  constructor(size) {
+    this.size = size;
+    let code = "const len = listeners.length; let li;";
+    for (let i = 0; i < size; i++) {
+      code += `
+if(${i} >= len) return;`;
+      code += `
+li = listeners[${i}];`;
+      code += `
+if(li?.[1]) listeners[${i}] = undefined;`;
+      code += `
+li?.[0](event);`;
+    }
+    this.dispatch = new Function("event", "listeners", code);
+  }
+};
 var EventEmitter = class {
-  constructor() {
+  constructor(dispatchSize = 10) {
     this.listenerMap = /* @__PURE__ */ new Map();
+    this.eventDispatcher = new EventDispatcher(dispatchSize);
   }
   once(event, listener) {
     return this.add(event, listener, true);
@@ -53,17 +71,7 @@ var EventEmitter = class {
     const type = event.constructor;
     const listeners = this.listenerMap.get(type);
     if (listeners) {
-      const length = listeners.length;
-      for (let i = 0; i < length; i++) {
-        const entry = listeners[i];
-        if (!entry) {
-          continue;
-        }
-        if (entry[1]) {
-          listeners[i] = void 0;
-        }
-        entry[0](event);
-      }
+      this.eventDispatcher.dispatch(event, listeners);
     }
     return this;
   }
@@ -83,11 +91,16 @@ var EventEmitter = class {
   }
   add(event, listener, once = false) {
     const listeners = this.listenerMap.get(event);
+    let count = 1;
     if (listeners) {
-      const filtered = listeners.filter((ev) => ev && ev[0] !== listener);
+      const filtered = listeners.filter((entry) => entry && entry[0] !== listener);
       this.listenerMap.set(event, [...filtered, [listener, once]]);
+      count += filtered.length;
     } else {
       this.listenerMap.set(event, [[listener, once]]);
+    }
+    if (count > this.eventDispatcher.size) {
+      this.eventDispatcher = new EventDispatcher(count);
     }
     return this;
   }

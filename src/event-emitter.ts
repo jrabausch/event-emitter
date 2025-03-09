@@ -6,9 +6,31 @@ export type EmitterEvent = {
 export type EventType<T extends EmitterEvent> = new (...args: any[]) => T;
 export type EventListener<T extends EmitterEvent> = (event: T) => void;
 type ListenerArray<T extends EmitterEvent> = Array<[EventListener<T>, boolean] | undefined>;
+type EmitterFunction<T extends EmitterEvent> = (event: T, listeners: ListenerArray<T>) => void;
+
+class EventDispatcher {
+  public readonly dispatch: EmitterFunction<EmitterEvent>;
+  constructor(
+    public readonly size: number,
+  ) {
+    let code = 'const len = listeners.length; let li;';
+    for (let i = 0; i < size; i++) {
+      code += `\nif(${i} >= len) return;`;
+      code += `\nli = listeners[${i}];`;
+      code += `\nif(li?.[1]) listeners[${i}] = undefined;`;
+      code += `\nli?.[0](event);`;
+    }
+    // eslint-disable-next-line no-new-func
+    this.dispatch = new Function('event', 'listeners', code) as EmitterFunction<EmitterEvent>;
+  }
+}
 
 export class EventEmitter {
   protected readonly listenerMap: Map<EventType<EmitterEvent>, ListenerArray<never>> = new Map();
+  protected eventDispatcher: EventDispatcher;
+  constructor(dispatchSize: number = 10) {
+    this.eventDispatcher = new EventDispatcher(dispatchSize);
+  }
 
   public once<T extends EmitterEvent>(event: EventType<T>, listener: EventListener<T>): this {
     return this.add(event, listener, true);
@@ -39,19 +61,9 @@ export class EventEmitter {
 
   public emit<T extends EmitterEvent>(event: T): this {
     const type = event.constructor as EventType<T>;
-    const listeners = this.listenerMap.get(type) as ListenerArray<T> | undefined;
+    const listeners = this.listenerMap.get(type) as ListenerArray<EmitterEvent> | undefined;
     if (listeners) {
-      const length = listeners.length;
-      for (let i = 0; i < length; i++) {
-        const entry = listeners[i];
-        if (!entry) {
-          continue;
-        }
-        if (entry[1]) {
-          listeners[i] = undefined;
-        }
-        entry[0](event);
-      }
+      this.eventDispatcher.dispatch(event, listeners);
     }
     return this;
   }
@@ -81,12 +93,17 @@ export class EventEmitter {
     once: boolean = false,
   ): this {
     const listeners = this.listenerMap.get(event);
+    let count = 1;
     if (listeners) {
-      const filtered = listeners.filter(ev => ev && ev[0] !== listener);
+      const filtered = listeners.filter(entry => entry && entry[0] !== listener);
       this.listenerMap.set(event, [...filtered, [listener, once]]);
+      count += filtered.length;
     }
     else {
       this.listenerMap.set(event, [[listener, once]]);
+    }
+    if (count > this.eventDispatcher.size) {
+      this.eventDispatcher = new EventDispatcher(count);
     }
     return this;
   }

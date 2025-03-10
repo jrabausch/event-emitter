@@ -6,22 +6,22 @@ export type EmitterEvent = {
 export type EventType<T extends EmitterEvent> = new (...args: any[]) => T;
 export type EventListener<T extends EmitterEvent> = (event: T) => void;
 type ListenerArray<T extends EmitterEvent> = Array<[EventListener<T>, boolean] | undefined>;
-type EmitterFunction<T extends EmitterEvent> = (event: T, listeners: ListenerArray<T>) => void;
+type EmitterFunction<T extends EmitterEvent> = (event: T, listeners: ListenerArray<T>) => number;
 
 class EventDispatcher {
   public readonly dispatch: EmitterFunction<EmitterEvent>;
   constructor(
     public readonly size: number,
   ) {
-    let code = 'const len = listeners.length; let li;';
+    let code = 'var len = arr.length, count = 0, li;';
     for (let i = 0; i < size; i++) {
-      code += `\nif(${i} >= len) return;`;
-      code += `\nli = listeners[${i}];`;
-      code += `\nif(li?.[1]) listeners[${i}] = undefined;`;
-      code += `\nli?.[0](event);`;
+      code += `\nif(${i} === len) return count;`;
+      code += `\nif(li = arr[${i}]){ if(li[1]) arr[${i}] = undefined; li[0](ev); count++; }`;
     }
+    code += `\nif(${size} === len) return count;`;
+    code += `\nthrow new RangeError('Dispatch function too small: ' + len + ' > ${size}');`;
     // eslint-disable-next-line no-new-func
-    this.dispatch = new Function('event', 'listeners', code) as EmitterFunction<EmitterEvent>;
+    this.dispatch = new Function('ev', 'arr', code) as EmitterFunction<EmitterEvent>;
   }
 }
 
@@ -44,7 +44,7 @@ export class EventEmitter {
     if (listener) {
       const listeners = this.listenerMap.get(event);
       if (listeners) {
-        const filtered = listeners.filter(entry => entry && entry[0] !== listener);
+        const filtered = this.filter(listeners, listener);
         if (filtered.length > 0) {
           this.listenerMap.set(event, filtered);
         }
@@ -59,23 +59,26 @@ export class EventEmitter {
     return this;
   }
 
-  public emit<T extends EmitterEvent>(event: T): this {
+  public emit<T extends EmitterEvent>(event: T): number {
     const type = event.constructor as EventType<T>;
     const listeners = this.listenerMap.get(type) as ListenerArray<EmitterEvent> | undefined;
     if (listeners) {
-      this.eventDispatcher.dispatch(event, listeners);
+      return this.eventDispatcher.dispatch(event, listeners);
     }
-    return this;
+    return 0;
   }
 
   public listeners<T extends EmitterEvent>(event: EventType<T>): EventListener<T>[] {
-    const listeners = this.listenerMap.get(event);
+    const listeners = this.listenerMap.get(event) as ListenerArray<T> | undefined;
+    const filtered = [];
     if (listeners) {
-      return listeners
-        .filter((entry): entry is [EventListener<T>, boolean] => !!entry)
-        .map(([li]) => li);
+      const length = listeners.length;
+      for (let i = 0; i < length; i++) {
+        const entry = listeners[i];
+        entry && filtered.push(entry[0]);
+      }
     }
-    return [];
+    return filtered;
   }
 
   public events(): EventType<EmitterEvent>[] {
@@ -93,18 +96,36 @@ export class EventEmitter {
     once: boolean = false,
   ): this {
     const listeners = this.listenerMap.get(event);
+    const entry: [EventListener<T>, boolean] = [listener, once];
     let count = 1;
     if (listeners) {
-      const filtered = listeners.filter(entry => entry && entry[0] !== listener);
-      this.listenerMap.set(event, [...filtered, [listener, once]]);
-      count += filtered.length;
+      const filtered = this.filter(listeners, listener);
+      filtered.push(entry);
+      this.listenerMap.set(event, filtered);
+      count = filtered.length;
     }
     else {
-      this.listenerMap.set(event, [[listener, once]]);
+      this.listenerMap.set(event, [entry]);
     }
     if (count > this.eventDispatcher.size) {
-      this.eventDispatcher = new EventDispatcher(count);
+      // dynamically increase dispatch size
+      this.eventDispatcher = new EventDispatcher(count + 10);
     }
     return this;
+  }
+
+  protected filter<T extends EmitterEvent>(
+    arr: ListenerArray<T>,
+    listener: EventListener<T>,
+  ): ListenerArray<T> {
+    const filtered = [];
+    const length = arr.length;
+    for (let i = 0; i < length; i++) {
+      const entry = arr[i];
+      if (entry && entry[0] !== listener) {
+        filtered.push(entry);
+      }
+    }
+    return filtered;
   }
 }

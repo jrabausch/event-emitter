@@ -21,9 +21,13 @@ describe('eventEmitter', () => {
     extendedEvent = new ExtendedEvent();
   });
 
-  it('should return self on emit', () => {
-    const emitter = eventEmitter.emit(emitterEvent);
-    expect(emitter).toBe(eventEmitter);
+  it('should return emitted count on emit', () => {
+    const listener = () => { };
+
+    expect(eventEmitter.emit(emitterEvent)).toBe(0);
+    eventEmitter.once(TestEvent, listener);
+    expect(eventEmitter.emit(emitterEvent)).toBe(1);
+    expect(eventEmitter.emit(emitterEvent)).toBe(0);
   });
 
   it('should emit an event', () => {
@@ -38,6 +42,20 @@ describe('eventEmitter', () => {
 
     eventEmitter.emit(emitterEvent);
     expect(count).toBe(1);
+  });
+
+  it('should handle multiple listeners', () => {
+    let count = 0;
+
+    const num = 12;
+    Array.from({ length: num }).fill(1).forEach(() => {
+      eventEmitter.on(TestEvent, () => {
+        count++;
+      });
+    });
+    const emitted = eventEmitter.emit(emitterEvent);
+    expect(emitted).toBe(num);
+    expect(count).toBe(num);
   });
 
   it('should listen many times', () => {

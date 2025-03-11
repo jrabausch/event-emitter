@@ -7,9 +7,10 @@ import type {
   ListenerConfig,
 } from './types';
 import { LoopEventDispatcher } from './loop-event-dispatcher';
+import { SeekMap } from './seek-map';
 
 export class EventEmitter {
-  protected readonly listenerMap: Map<EventType<EmitterEvent>, ListenerArray<never>> = new Map();
+  protected readonly listenerMap: SeekMap<EventType<EmitterEvent>, ListenerArray<never>> = new SeekMap();
 
   constructor(
     protected readonly dispatcher: EventDispatcher = new LoopEventDispatcher(),
@@ -58,7 +59,7 @@ export class EventEmitter {
       const length = listeners.length;
       for (let i = 0; i < length; i++) {
         const entry = listeners[i];
-        entry && filtered.push(entry.listener);
+        entry && filtered.push(entry[0]);
       }
     }
     return filtered;
@@ -79,7 +80,7 @@ export class EventEmitter {
     once: boolean = false,
   ): this {
     const listeners = this.listenerMap.get(event);
-    const entry: ListenerConfig<T> = Object.create({ listener, once });
+    const entry: ListenerConfig<T> = [listener, once];
     if (listeners) {
       const filtered = this.filter(listeners, listener);
       filtered.push(entry);
@@ -99,7 +100,7 @@ export class EventEmitter {
     const length = arr.length;
     for (let i = 0; i < length; i++) {
       const entry = arr[i];
-      if (entry && entry.listener !== listener) {
+      if (entry && entry[0] !== listener) {
         filtered.push(entry);
       }
     }

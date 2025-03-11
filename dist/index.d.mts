@@ -3,8 +3,8 @@ type EmitterEvent = {
     [key: number]: any;
 };
 type ListenerConfig<T extends EmitterEvent> = {
-    listener: EventListener<T>;
-    once: boolean;
+    0: EventListener<T>;
+    1: boolean;
 };
 type EventType<T extends EmitterEvent> = new (...args: any[]) => T;
 type EventListener<T extends EmitterEvent> = (event: T) => void;
@@ -13,9 +13,22 @@ type EventDispatcher = {
     dispatch: <T extends EmitterEvent>(event: T, listeners: ListenerArray<T>) => number;
 };
 
+declare class SeekMap<K, V> {
+    protected readonly keyArray: K[];
+    protected readonly valueStore: Record<number, V>;
+    constructor();
+    get size(): number;
+    clear(): void;
+    keys(): K[];
+    set(key: K, value: V): this;
+    get(key: K): V | undefined;
+    has(key: K): boolean;
+    delete(key: K): boolean;
+}
+
 declare class EventEmitter {
     protected readonly dispatcher: EventDispatcher;
-    protected readonly listenerMap: Map<EventType<EmitterEvent>, ListenerArray<never>>;
+    protected readonly listenerMap: SeekMap<EventType<EmitterEvent>, ListenerArray<never>>;
     constructor(dispatcher?: EventDispatcher);
     once<T extends EmitterEvent>(event: EventType<T>, listener: EventListener<T>): this;
     on<T extends EmitterEvent>(event: EventType<T>, listener: EventListener<T>): this;

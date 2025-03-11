@@ -3,8 +3,8 @@ export type EmitterEvent = {
   [key: number]: any;
 };
 export type ListenerConfig<T extends EmitterEvent> = {
-  listener: EventListener<T>;
-  once: boolean;
+  0: EventListener<T>;
+  1: boolean;
 };
 export type EventType<T extends EmitterEvent> = new (...args: any[]) => T;
 export type EventListener<T extends EmitterEvent> = (event: T) => void;

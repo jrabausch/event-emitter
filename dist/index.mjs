@@ -8,13 +8,87 @@ var LoopEventDispatcher = class {
       if (!entry) {
         continue;
       }
-      if (entry.once) {
+      if (entry[1]) {
         listeners[i] = void 0;
       }
-      entry.listener(event);
+      entry[0](event);
       count++;
     }
     return count;
+  }
+};
+
+// src/seek-map.ts
+var SeekMap = class {
+  constructor() {
+    this.keyArray = [];
+    this.valueStore = {};
+  }
+  get size() {
+    return this.keyArray.length;
+  }
+  clear() {
+    this.keyArray.length = 0;
+    const values = this.valueStore;
+    for (const key in values) {
+      delete values[key];
+    }
+  }
+  keys() {
+    return [...this.keyArray];
+  }
+  set(key, value) {
+    const keys = this.keyArray;
+    const values = this.valueStore;
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+      if (keys[i] === key) {
+        values[i] = value;
+        return this;
+      }
+    }
+    const index = keys.push(key) - 1;
+    values[index] = value;
+    return this;
+  }
+  get(key) {
+    const keys = this.keyArray;
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+      if (keys[i] === key) {
+        return this.valueStore[i];
+      }
+    }
+    return void 0;
+  }
+  has(key) {
+    const keys = this.keyArray;
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+      if (keys[i] === key) {
+        return true;
+      }
+    }
+    return false;
+  }
+  delete(key) {
+    const keys = this.keyArray;
+    const length = keys.length;
+    for (let i = 0; i < length; i++) {
+      if (keys[i] !== key) {
+        continue;
+      }
+      delete this.valueStore[i];
+      if (i === 0) {
+        keys.shift();
+      } else if (i === length - 1) {
+        keys.length = i;
+      } else {
+        keys.splice(i, 1);
+      }
+      return true;
+    }
+    return false;
   }
 };
 
@@ -22,7 +96,7 @@ var LoopEventDispatcher = class {
 var EventEmitter = class {
   constructor(dispatcher = new LoopEventDispatcher()) {
     this.dispatcher = dispatcher;
-    this.listenerMap = /* @__PURE__ */ new Map();
+    this.listenerMap = new SeekMap();
   }
   once(event, listener) {
     return this.add(event, listener, true);
@@ -61,7 +135,7 @@ var EventEmitter = class {
       const length = listeners.length;
       for (let i = 0; i < length; i++) {
         const entry = listeners[i];
-        entry && filtered.push(entry.listener);
+        entry && filtered.push(entry[0]);
       }
     }
     return filtered;
@@ -75,7 +149,7 @@ var EventEmitter = class {
   }
   add(event, listener, once = false) {
     const listeners = this.listenerMap.get(event);
-    const entry = /* @__PURE__ */ Object.create({ listener, once });
+    const entry = [listener, once];
     if (listeners) {
       const filtered = this.filter(listeners, listener);
       filtered.push(entry);
@@ -90,7 +164,7 @@ var EventEmitter = class {
     const length = arr.length;
     for (let i = 0; i < length; i++) {
       const entry = arr[i];
-      if (entry && entry.listener !== listener) {
+      if (entry && entry[0] !== listener) {
         filtered.push(entry);
       }
     }
@@ -118,7 +192,7 @@ var FunctionEventDispatcher = class {
       code += `
 if(${i} === len) return count;`;
       code += `
-if(li = arr[${i}]){ if(li.once) arr[${i}] = undefined; li.listener(ev); count++; }`;
+if(li = arr[${i}]){ if(li[1]) arr[${i}] = undefined; li[0](ev); count++; }`;
     }
     code += `
 if(${size} === len) return count;`;

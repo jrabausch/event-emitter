@@ -9,10 +9,10 @@ export class LoopEventDispatcher implements EventDispatcher {
       if (!entry) {
         continue;
       }
-      if (entry.once) {
+      if (entry[1]) {
         listeners[i] = undefined;
       }
-      entry.listener(event);
+      entry[0](event);
       count++;
     }
     return count;

@@ -22,7 +22,7 @@ export class FunctionEventDispatcher implements EventDispatcher {
     let code = 'var len = arr.length, count = 0, li;';
     for (let i = 0; i < size; i++) {
       code += `\nif(${i} === len) return count;`;
-      code += `\nif(li = arr[${i}]){ if(li.once) arr[${i}] = undefined; li.listener(ev); count++; }`;
+      code += `\nif(li = arr[${i}]){ if(li[1]) arr[${i}] = undefined; li[0](ev); count++; }`;
     }
     code += `\nif(${size} === len) return count;`;
     code += `\nthrow new RangeError('Dispatch function too small: ' + len + ' > ${size}');`;

@@ -17,33 +17,40 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/event-emitter.ts
-var event_emitter_exports = {};
-__export(event_emitter_exports, {
-  EventEmitter: () => EventEmitter
+// src/index.ts
+var index_exports = {};
+__export(index_exports, {
+  EventEmitter: () => EventEmitter,
+  FunctionEventDispatcher: () => FunctionEventDispatcher,
+  LoopEventDispatcher: () => LoopEventDispatcher
 });
-module.exports = __toCommonJS(event_emitter_exports);
-var EventDispatcher = class {
-  constructor(size) {
-    this.size = size;
-    let code = "var len = arr.length, count = 0, li;";
-    for (let i = 0; i < size; i++) {
-      code += `
-if(${i} === len) return count;`;
-      code += `
-if(li = arr[${i}]){ if(li[1]) arr[${i}] = undefined; li[0](ev); count++; }`;
+module.exports = __toCommonJS(index_exports);
+
+// src/loop-event-dispatcher.ts
+var LoopEventDispatcher = class {
+  dispatch(event, listeners) {
+    const length = listeners.length;
+    let count = 0;
+    for (let i = 0; i < length; i++) {
+      const entry = listeners[i];
+      if (!entry) {
+        continue;
+      }
+      if (entry.once) {
+        listeners[i] = void 0;
+      }
+      entry.listener(event);
+      count++;
     }
-    code += `
-if(${size} === len) return count;`;
-    code += `
-throw new RangeError('Dispatch function too small: ' + len + ' > ${size}');`;
-    this.dispatch = new Function("ev", "arr", code);
+    return count;
   }
 };
+
+// src/event-emitter.ts
 var EventEmitter = class {
-  constructor(dispatchSize = 10) {
+  constructor(dispatcher = new LoopEventDispatcher()) {
+    this.dispatcher = dispatcher;
     this.listenerMap = /* @__PURE__ */ new Map();
-    this.eventDispatcher = new EventDispatcher(dispatchSize);
   }
   once(event, listener) {
     return this.add(event, listener, true);
@@ -71,7 +78,7 @@ var EventEmitter = class {
     const type = event.constructor;
     const listeners = this.listenerMap.get(type);
     if (listeners) {
-      return this.eventDispatcher.dispatch(event, listeners);
+      return this.dispatcher.dispatch(event, listeners);
     }
     return 0;
   }
@@ -82,7 +89,7 @@ var EventEmitter = class {
       const length = listeners.length;
       for (let i = 0; i < length; i++) {
         const entry = listeners[i];
-        entry && filtered.push(entry[0]);
+        entry && filtered.push(entry.listener);
       }
     }
     return filtered;
@@ -96,18 +103,13 @@ var EventEmitter = class {
   }
   add(event, listener, once = false) {
     const listeners = this.listenerMap.get(event);
-    const entry = [listener, once];
-    let count = 1;
+    const entry = /* @__PURE__ */ Object.create({ listener, once });
     if (listeners) {
       const filtered = this.filter(listeners, listener);
       filtered.push(entry);
       this.listenerMap.set(event, filtered);
-      count = filtered.length;
     } else {
       this.listenerMap.set(event, [entry]);
-    }
-    if (count > this.eventDispatcher.size) {
-      this.eventDispatcher = new EventDispatcher(count + 10);
     }
     return this;
   }
@@ -116,15 +118,47 @@ var EventEmitter = class {
     const length = arr.length;
     for (let i = 0; i < length; i++) {
       const entry = arr[i];
-      if (entry && entry[0] !== listener) {
+      if (entry && entry.listener !== listener) {
         filtered.push(entry);
       }
     }
     return filtered;
   }
 };
+
+// src/function-event-dispatcher.ts
+var FunctionEventDispatcher = class {
+  constructor(size = 10) {
+    this.size = size;
+    this.dispatchFunction = this.createFunction(size);
+  }
+  dispatch(event, listeners) {
+    const length = listeners.length;
+    if (length > this.size) {
+      this.size = length + 10;
+      this.dispatchFunction = this.createFunction(this.size);
+    }
+    return this.dispatchFunction(event, listeners);
+  }
+  createFunction(size) {
+    let code = "var len = arr.length, count = 0, li;";
+    for (let i = 0; i < size; i++) {
+      code += `
+if(${i} === len) return count;`;
+      code += `
+if(li = arr[${i}]){ if(li.once) arr[${i}] = undefined; li.listener(ev); count++; }`;
+    }
+    code += `
+if(${size} === len) return count;`;
+    code += `
+throw new RangeError('Dispatch function too small: ' + len + ' > ${size}');`;
+    return new Function("ev", "arr", code);
+  }
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  EventEmitter
+  EventEmitter,
+  FunctionEventDispatcher,
+  LoopEventDispatcher
 });
-//# sourceMappingURL=event-emitter.js.map
+//# sourceMappingURL=index.js.map

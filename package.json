@@ -2,9 +2,9 @@
   "name": "@jrabausch/event-emitter",
   "version": "1.0.0",
   "description": "Simple event emitter for Node and the browser.",
-  "main": "./dist/event-emitter.js",
-  "module": "./dist/event-emitter.mjs",
-  "types": "./dist/event-emitter.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "check": "tsc --noEmit",
     "lint": "eslint",

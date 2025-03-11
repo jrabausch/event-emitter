@@ -1,5 +1,5 @@
-import type { EmitterEvent } from '../src/event-emitter';
-import { EventEmitter } from '../src/event-emitter';
+import type { EmitterEvent } from '../src/index';
+import { EventEmitter } from '../src/index';
 
 class TestEvent {
   public readonly name: string = 'event';

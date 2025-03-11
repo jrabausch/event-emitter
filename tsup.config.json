@@ -1,6 +1,6 @@
 {
   "entry": [
-    "src/event-emitter.ts"
+    "src/index.ts"
   ],
   "format": [
     "cjs",
